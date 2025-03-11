@@ -8,7 +8,7 @@ using namespace std;
 
 const unordered_set<string> HttpRequest::DEFAULT_HTML{
             "/index", "/register", "/login",
-             "/welcome", "/video", "/picture", };
+             "/welcome", "/video", "/picture", "/upload", "/filelist", };
 
 const unordered_map<string, int> HttpRequest::DEFAULT_HTML_TAG {
             {"/register.html", 0}, {"/login.html", 1},  };
@@ -262,6 +262,46 @@ std::string HttpRequest::GetPost(const char* key) const {
     assert(key != nullptr);
     if(post_.count(key) == 1) {
         return post_.find(key)->second;
+    }
+    return "";
+}
+
+std::string HttpRequest::GetHeader(const std::string& key) const {
+    if(header_.count(key) == 1) {
+        return header_.find(key)->second;
+    }
+    return "";
+}
+
+std::string HttpRequest::GetUploadFilename() const {
+    // 从Content-Disposition头中提取文件名
+    std::string contentDisposition = GetHeader("Content-Disposition");
+    if(contentDisposition.empty()) {
+        return "";
+    }
+    
+    std::regex filenamePattern("filename=\"([^\"]+)\"");
+    std::smatch match;
+    if(std::regex_search(contentDisposition, match, filenamePattern) && match.size() > 1) {
+        return match[1].str();
+    }
+    return "";
+}
+
+std::string HttpRequest::GetBody() const {
+    return body_;
+}
+
+std::string HttpRequest::GetBoundary() const {
+    std::string contentType = GetHeader("Content-Type");
+    if(contentType.empty() || contentType.find("multipart/form-data") == std::string::npos) {
+        return "";
+    }
+    
+    std::regex boundaryPattern("boundary=([^\s;]+)");
+    std::smatch match;
+    if(std::regex_search(contentType, match, boundaryPattern) && match.size() > 1) {
+        return match[1].str();
     }
     return "";
 }

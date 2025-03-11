@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <iostream>
 #include "server/webserver.h"
+#include "http/filehandler.h"
 
 int main() {
     /* 守护进程 后台运行 */
@@ -18,6 +19,9 @@ int main() {
     std::cout << "按 Ctrl+C 停止服务器" << std::endl;
     std::cout << "========================================" << std::endl;
 
+    // 初始化文件处理器，设置上传目录
+    FileHandler::Instance()->Init("./uploads");
+    
     WebServer server(
         port, 3, 60000, false,             /* 端口 ET模式 timeoutMs 优雅退出  */
         3306, "ct", "123456", "ctdb", /* Mysql配置 */

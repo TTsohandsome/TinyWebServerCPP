@@ -53,11 +53,17 @@ public:
 
     bool IsKeepAlive() const;
 
-    /* 
-    todo 
-    void HttpConn::ParseFormData() {}
-    void HttpConn::ParseJson() {}
-    */
+    // 获取Content-Type
+    std::string GetHeader(const std::string& key) const;
+    
+    // 获取上传的文件名
+    std::string GetUploadFilename() const;
+    
+    // 获取请求体
+    std::string GetBody() const;
+    
+    // 获取Content-Type中的boundary
+    std::string GetBoundary() const;
 
 private:
     bool ParseRequestLine_(const std::string& line);

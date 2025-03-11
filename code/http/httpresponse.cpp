@@ -54,7 +54,7 @@ HttpResponse::~HttpResponse() {
     UnmapFile();
 }
 
-void HttpResponse::Init(const string& srcDir, string& path, bool isKeepAlive, int code){
+void HttpResponse::Init(const string& srcDir, const string& path, bool isKeepAlive, int code){
     assert(srcDir != "");
     if(mmFile_) { UnmapFile(); }
     code_ = code;
@@ -66,8 +66,14 @@ void HttpResponse::Init(const string& srcDir, string& path, bool isKeepAlive, in
 }
 
 void HttpResponse::MakeResponse(Buffer& buff) {
+    /* 对于特殊路径/filelist和/upload，不检查文件是否存在，因为它们是动态生成的 */
+    if(path_ == "/filelist" || path_ == "/upload" || path_.find("/download/") == 0) {
+        if(code_ == -1) {
+            code_ = 200;
+        }
+    }
     /* 判断请求的资源文件 */
-    if(stat((srcDir_ + path_).data(), &mmFileStat_) < 0 || S_ISDIR(mmFileStat_.st_mode)) {
+    else if(stat((srcDir_ + path_).data(), &mmFileStat_) < 0 || S_ISDIR(mmFileStat_.st_mode)) {
         code_ = 404;
     }
     else if(!(mmFileStat_.st_mode & S_IROTH)) {
@@ -177,4 +183,21 @@ void HttpResponse::ErrorContent(Buffer& buff, string message)
 
     buff.Append("Content-length: " + to_string(body.size()) + "\r\n\r\n");
     buff.Append(body);
+}
+
+void HttpResponse::SetFile(char* file, size_t len) {
+    mmFile_ = file;
+    mmFileStat_.st_size = len;
+}
+
+void HttpResponse::SetContent(const std::string& content) {
+    // 先释放之前的文件映射（如果有）
+    UnmapFile();
+    
+    // 分配内存并复制内容
+    mmFile_ = (char*)malloc(content.size());
+    if (mmFile_ != nullptr) {
+        memcpy(mmFile_, content.c_str(), content.size());
+        mmFileStat_.st_size = content.size();
+    }
 }
