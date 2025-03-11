@@ -1,0 +1,212 @@
+<!--
+ * @Author       : mark
+ * @Date         : 2023-06-15
+ * @copyleft GPL 2.0
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>MARK-文件列表</title>
+    <link rel="icon" href="images/favicon.ico">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/animate.css">
+    <link rel="stylesheet" href="css/magnific-popup.css">
+    <link rel="stylesheet" href="css/font-awesome.min.css">
+
+    <!-- Main css -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        .filelist-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .file-list {
+            margin-top: 20px;
+        }
+        
+        .file-list table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .file-list th, .file-list td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .file-list tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-download {
+            background-color: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-download:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body data-spy="scroll" data-target=".navbar-collapse" data-offset="50">
+
+    <!-- PRE LOADER -->
+    <div class="preloader">
+        <div class="spinner">
+            <span class="spinner-rotate"></span>
+        </div>
+    </div>
+
+    <!-- NAVIGATION SECTION -->
+    <div class="navbar custom-navbar navbar-fixed-top" role="navigation">
+        <div class="container">
+
+            <div class="navbar-header">
+                <button class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="icon icon-bar"></span>
+                    <span class="icon icon-bar"></span>
+                    <span class="icon icon-bar"></span>
+                </button>
+                <!-- lOGO TEXT HERE -->
+                <a href="/" class="navbar-brand">Mark</a>
+            </div>
+            <div class="collapse navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a class="smoothScroll" href="/">首页</a></li>
+                    <li><a class="smoothScroll" href="/picture">图片</a></li>
+                    <li><a class="smoothScroll" href="/video">视频</a></li>
+                    <li><a class="smoothScroll" href="/upload">文件上传</a></li>
+                    <li><a class="smoothScroll" href="/filelist">文件列表</a></li>
+                    <li><a class="smoothScroll" href="/login">登录</a></li>
+                    <li><a class="smoothScroll" href="/register">注册</a></li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- HOME SECTION -->
+    <section id="home">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <h1 class="wow fadeInUp" data-wow-delay="0.6s">文件列表</h1>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="filelist-container">
+                        <div class="file-list">
+                            <h2>已上传文件列表</h2>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>文件名</th>
+                                        <th>大小</th>
+                                        <th>上传时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fileListBody">
+                                    <!-- 文件列表将通过JavaScript动态加载 -->
+                                </tbody>
+                            </table>
+                            <p>没有找到文件？您可以在<a href="/upload">上传页面</a>上传新文件。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SCRIPTS -->
+    <script src="js/jquery.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/smoothscroll.js"></script>
+    <script src="js/jquery.magnific-popup.min.js"></script>
+    <script src="js/magnific-popup-options.js"></script>
+    <script src="js/wow.min.js"></script>
+    <script src="js/custom.js"></script>
+    
+    <script>
+        // 页面加载完成后获取文件列表
+        $(document).ready(function() {
+            // 发送AJAX请求获取文件列表
+            $.ajax({
+                url: '/filelist',
+                type: 'GET',
+                dataType: 'html',
+                success: function(response) {
+                    // 解析服务器返回的HTML
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(response, 'text/html');
+                    const tableRows = doc.querySelectorAll('table tr');
+                    
+                    // 获取文件列表
+                    const files = [];
+                    for (let i = 1; i < tableRows.length; i++) { // 跳过表头
+                        const cells = tableRows[i].querySelectorAll('td');
+                        if (cells.length >= 2) {
+                            files.push({
+                                name: cells[0].textContent,
+                                link: cells[1].querySelector('a').getAttribute('href')
+                            });
+                        }
+                    }
+                    
+                    // 渲染文件列表
+                    const fileListBody = document.getElementById('fileListBody');
+                    
+                    if (files.length === 0) {
+                        const row = document.createElement('tr');
+                        row.innerHTML = '<td colspan="4">暂无文件</td>';
+                        fileListBody.appendChild(row);
+                    } else {
+                        files.forEach(file => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${file.name}</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td class="file-actions">
+                                    <a href="${file.link}" class="btn-download">下载</a>
+                                </td>
+                            `;
+                            fileListBody.appendChild(row);
+                        });
+                    }
+                },
+                error: function() {
+                    const fileListBody = document.getElementById('fileListBody');
+                    const row = document.createElement('tr');
+                    row.innerHTML = '<td colspan="4">获取文件列表失败</td>';
+                    fileListBody.appendChild(row);
+                }
+            });
+        });}
+    </script>
+</body>
+
+</html>
