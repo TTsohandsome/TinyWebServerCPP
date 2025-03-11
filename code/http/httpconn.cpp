@@ -101,7 +101,45 @@ bool HttpConn::process() {
     }
     else if(request_.parse(readBuff_)) {
         LOG_DEBUG("%s", request_.path().c_str());
-        response_.Init(srcDir, request_.path(), request_.IsKeepAlive(), 200);
+        
+        // 处理文件上传请求
+        if(request_.method() == "POST" && request_.path() == "/upload") {
+            std::string boundary = request_.GetBoundary();
+            std::string filename;
+            
+            if(!boundary.empty() && FileHandler::Instance()->HandleUpload(boundary, request_.GetBody(), filename)) {
+                LOG_INFO("File uploaded successfully: %s", filename.c_str());
+                response_.Init(srcDir, "/filelist", request_.IsKeepAlive(), 200);
+            } else {
+                LOG_ERROR("File upload failed");
+                response_.Init(srcDir, "/error.html", request_.IsKeepAlive(), 400);
+            }
+        }
+        // 处理文件下载请求
+        else if(request_.path().find("/download/") == 0) {
+            std::string filename = request_.path().substr(10); // 去掉 "/download/"
+            char* filePtr = nullptr;
+            size_t fileLen = 0;
+            
+            if(FileHandler::Instance()->HandleDownload(filename, writeBuff_, &filePtr, fileLen)) {
+                LOG_INFO("File download request: %s", filename.c_str());
+                response_.SetFile(filePtr, fileLen);
+                response_.Init(srcDir, request_.path(), request_.IsKeepAlive(), 200);
+            } else {
+                LOG_ERROR("File download failed: %s", filename.c_str());
+                response_.Init(srcDir, "/error.html", request_.IsKeepAlive(), 404);
+            }
+        }
+        // 处理文件列表请求
+        else if(request_.path() == "/filelist") {
+            std::string fileListHtml = FileHandler::Instance()->GetFileList();
+            response_.SetContent(fileListHtml);
+            response_.Init(srcDir, request_.path(), request_.IsKeepAlive(), 200);
+        }
+        // 处理普通请求
+        else {
+            response_.Init(srcDir, request_.path(), request_.IsKeepAlive(), 200);
+        }
     } else {
         response_.Init(srcDir, request_.path(), false, 400);
     }
